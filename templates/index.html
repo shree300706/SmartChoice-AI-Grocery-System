@@ -1,0 +1,159 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SmartChoice Scan & Compare</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#172033;font:15px/1.45 system-ui,Arial}header{background:#17233b;color:#fff;padding:22px max(18px,calc((100vw - 1100px)/2))}main{max-width:1100px;margin:22px auto;padding:0 15px;display:grid;gap:15px}.panel{background:#fff;border:1px solid #dce3ed;border-radius:14px;padding:16px}h1,h2{margin-top:0}h2{font-size:19px}.two,.results{display:grid;grid-template-columns:1fr 1fr;gap:14px}.product{border:1px solid #dce3ed;border-radius:11px;padding:13px}label{display:block;font-weight:600;font-size:13px;margin:8px 0 4px}input,select,textarea{width:100%;padding:9px;border:1px solid #cbd4e2;border-radius:8px;font:inherit}button{padding:10px 14px;background:#3158d5;color:#fff;border:0;border-radius:8px;font-weight:700;cursor:pointer}.secondary{background:#e9edff;color:#253f9e}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.checks{display:flex;gap:12px;flex-wrap:wrap}.checks label{font-weight:500}.checks input{width:auto}.status{background:#f0f3f8;padding:10px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}.result{border:1px solid #dce3ed;border-radius:10px;padding:13px}.good{background:#e5f7eb}.warn{background:#fff4d8}.bad{background:#ffe8e8}.score{font-size:27px;font-weight:800}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:600px;font-size:13px}td,th{border:1px solid #dce3ed;padding:8px;text-align:left}th{background:#f0f3f8}.small{font-size:12px;color:#65738a}@media(max-width:740px){.two,.results,.grid{grid-template-columns:1fr}}
+</style></head><body><header><h1>SmartChoice</h1><p>Scan two packaged-food labels and compare them for your dietary requirements</p></header><main>
+<section class="panel"><h2>1. Your dietary profile</h2><div class="grid"><div><label>Diet preference</label><select id="diet"><option value="none">No specific preference</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option></select></div><div><label>Ingredients to avoid</label><input id="avoid" placeholder="peanuts, sesame"></div><div><label>Maximum sugar (label units)</label><input id="max_sugar" type="number" min="0" placeholder="Optional"></div><div><label>Maximum sodium (label units)</label><input id="max_sodium" type="number" min="0" placeholder="Optional"></div><div><label>Budget per product (₹)</label><input id="budget" type="number" min="0" placeholder="Optional"></div></div><label>Goals</label><div class="checks"><label><input class="goal" type="checkbox" value="reduce_sugar" checked> Reduce sugar</label><label><input class="goal" type="checkbox" value="higher_protein"> Higher protein</label><label><input class="goal" type="checkbox" value="higher_fiber"> Higher fiber</label><label><input class="goal" type="checkbox" value="lower_sodium"> Lower sodium</label><label><input class="goal" type="checkbox" value="balanced"> Balanced</label></div><p class="small">Both products must use the same nutrition basis, such as per 100 g. OCR can misread values; verify the fields before comparing.</p></section>
+<section class="panel"><h2>2. Scan Product A and Product B</h2><div class="two">
+<div class="product"><h3>Product A</h3><label>Name</label><input id="a_name" placeholder="Product A"><label>Upload nutrition/ingredients image</label><input id="a_file" type="file" accept="image/*"><button style="width:100%;margin-top:8px" onclick="scan('a')">Scan Product A</button><div id="a_status" class="status" style="margin-top:8px">Choose a clear image.</div><label>Ingredients (editable)</label><textarea id="a_ingredients" rows="2"></textarea><div class="grid" id="a_fields"></div></div>
+<div class="product"><h3>Product B</h3><label>Name</label><input id="b_name" placeholder="Product B"><label>Upload nutrition/ingredients image</label><input id="b_file" type="file" accept="image/*"><button style="width:100%;margin-top:8px" onclick="scan('b')">Scan Product B</button><div id="b_status" class="status" style="margin-top:8px">Choose a clear image.</div><label>Ingredients (editable)</label><textarea id="b_ingredients" rows="2"></textarea><div class="grid" id="b_fields"></div></div></div>
+<div style="margin-top:14px;display:flex;gap:10px"><button id="compare">Compare both products</button><button class="secondary" id="clear">Clear</button></div><div id="status" class="status" style="margin-top:10px">Scan both products, check values, then compare.</div></section>
+
+<section class="panel"><h2>3. Or select products directly from your dataset</h2><p>Choose any two products from the packaged-food CSV included with SmartChoice. The nutrition values and ingredients will be filled in automatically, so you do not need to scan labels or type values for these products.</p><div class="two"><div class="product"><h3>Product A from dataset</h3><label for="a_dataset_search">Search product, brand, or category</label><input id="a_dataset_search" placeholder="Type product or brand name"><label for="a_dataset_select">Select product</label><select id="a_dataset_select"><option value="">Loading dataset…</option></select><button id="a_dataset_load" style="width:100%;margin-top:8px">Use Product A</button></div><div class="product"><h3>Product B from dataset</h3><label for="b_dataset_search">Search product, brand, or category</label><input id="b_dataset_search" placeholder="Type product or brand name"><label for="b_dataset_select">Select product</label><select id="b_dataset_select"><option value="">Loading dataset…</option></select><button id="b_dataset_load" style="width:100%;margin-top:8px">Use Product B</button></div></div><div id="dataset_status" class="status" style="margin-top:10px">Loading products from the packaged-food dataset…</div><p class="small">Dataset nutrition values are loaded as stored. Verify the nutrition basis (for example, per 100 g versus per serving) before comparing with scanned products.</p></section>
+
+<section class="panel" id="multiworkbench">
+<h2>3. Multi-product scan & compare (images + CSV + image dataset)</h2>
+<p>Add as many products as you need from label images and the packaged-food CSV. Products are combined into one comparison list. You can compare 2–50 products per run.</p>
+<div class="two">
+  <div class="product">
+    <h3>A. Scan multiple product images</h3>
+    <label for="multi_images">Select multiple nutrition/ingredient label images</label>
+    <input id="multi_images" type="file" accept="image/*" multiple>
+    <button id="scan_multi" style="width:100%;margin-top:8px">Scan all selected images</button>
+    <p class="small">Choose multiple files at once. OCR extracts nutrition values; verify each result before comparing.</p>
+    <div id="multi_scan_status" class="status">No images scanned yet.</div>
+  </div>
+  <div class="product">
+    <h3>B. Add products from CSV dataset</h3>
+    <label for="multi_csv_search">Search products, brand, or category</label>
+    <input id="multi_csv_search" placeholder="Search the 852 product records">
+    <label for="multi_csv_select">Select one or more CSV products (Ctrl/Shift for multiple)</label>
+    <select id="multi_csv_select" multiple size="9"></select>
+    <button id="add_csv_products" style="width:100%;margin-top:8px">Add selected CSV products</button>
+    <p class="small" id="multi_csv_status">Loading CSV products…</p>
+  </div>
+</div>
+<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+  <button id="compare_multi">Compare all added products</button>
+  <button id="clear_multi" class="secondary">Clear comparison list</button>
+</div>
+<div id="multi_products_status" class="status" style="margin-top:10px">Add at least two products to begin.</div>
+<div id="multi_products_list" class="results" style="margin-top:10px"></div>
+</section>
+
+<section class="panel"><h2>5. Recommendation</h2><div id="summary"></div><div id="results" class="results" style="margin-top:10px"></div><div id="comparison" class="tablewrap" style="margin-top:12px"></div>
+<h3>Explainable AI (XAI): why this score?</h3><div id="xai" class="status">Score contributions appear after comparison.</div>
+<h3>Generative AI explanation</h3><div id="explanation" class="status">Explanation appears after comparison.</div>
+<h3>Random Forest global feature importance</h3><div id="importance" class="status">Feature importance appears after comparison.</div>
+<p class="small">For a generated LLM answer, set OPENAI_API_KEY in PowerShell before starting the app. Without a key, local retrieved guidance is shown instead.</p></section>
+
+<section class="panel"><h2>6. SmartChoice AI recommendation chatbot</h2><p>Ask for products from the included India packaged-food catalogue, such as “Recommend a low-sugar vegetarian snack under ₹100” or “Suggest high-protein options and avoid peanuts.” The chatbot uses your dietary profile, the recommendation model and retrieved guidance.</p><div id="chatlog" class="status" style="min-height:110px;margin-bottom:10px">SmartChoice: Hello! Tell me your dietary goal, food preferences, ingredients to avoid or budget.</div><label for="chatmessage">Your question</label><textarea id="chatmessage" rows="3" placeholder="Recommend low-sugar snacks under ₹100..."></textarea><button id="sendchat" style="margin-top:8px">Get recommendations</button><div id="chatstatus" class="small" style="margin-top:8px"></div><div id="chatrecs" class="results" style="margin-top:10px"></div><p class="small">With OPENAI_API_KEY, the chatbot can generate a grounded natural-language answer. Without it, the local catalogue recommender and RAG fallback still work.</p></section>
+<section class="panel"><h2>7. AI model status & evaluation</h2><div class="status" id="modelstatus">Loading model status…</div><pre id="metrics" class="status">{{ metrics | tojson(indent=2) }}</pre><p class="small">Random Forest and TensorFlow/Keras MLP are demonstration models trained on synthetic preference labels because the CSV has no expert suitability labels. Metrics do not represent clinical accuracy. Ingredient keyword checks cannot guarantee allergy safety.</p></section></main>
+<script>
+fetch('/api/model-info').then(r=>r.json()).then(d=>{const dl=d.deep_learning||{};$('modelstatus').textContent='Random Forest: '+(d.random_forest?.status||'status unavailable')+'\\nDeep learning: '+(dl.status||'status unavailable')+'\\nArchitecture: '+(dl.architecture||'MLP not enabled')+'\\nNote: '+(dl.note||dl.detail||'Install TensorFlow to enable the MLP.');}).catch(()=>$('modelstatus').textContent='Could not load model status.');
+const $=id=>document.getElementById(id), fields=[['sugar','Sugar (g)'],['protein','Protein (g)'],['fiber','Fiber (g)'],['sodium','Sodium (mg)'],['calories','Calories (kcal)'],['fat','Total fat (g)'],['carbs','Carbohydrates (g)'],['price','Price (₹)']];
+for(const s of ['a','b'])$(s+'_fields').innerHTML=fields.map(([k,l])=>`<div><label>${l}</label><input id="${s}_${k}" type="number" min="0" step="any"></div>`).join('');
+
+let datasetProducts=[];let datasetLoadTimer=null;
+function fillDatasetSelect(side,query=''){const select=$(side+'_dataset_select');const q=query.trim().toLowerCase();const filtered=datasetProducts.filter(p=>!q||(`${p.name} ${p.brand} ${p.category}`).toLowerCase().includes(q));select.innerHTML='<option value="">-- Select a product --</option>'+filtered.map(p=>`<option value="${p.id}">${esc(p.name)}${p.brand?' — '+esc(p.brand):''}${p.category?' ('+esc(p.category)+')':''}</option>`).join('');}
+async function loadDatasetProducts(){try{const r=await fetch('/api/products?limit=2000');const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to load products');datasetProducts=d.products||[];for(const side of ['a','b'])fillDatasetSelect(side);$('dataset_status').textContent=`Loaded ${datasetProducts.length} products from the packaged-food dataset. Search and select one for Product A and one for Product B.`;}catch(e){$('dataset_status').textContent='Could not load dataset products. Check that app.py is running and data/packaged_foods_india.csv exists.';}}
+for(const side of ['a','b']){$(side+'_dataset_search').addEventListener('input',()=>fillDatasetSelect(side,$(side+'_dataset_search').value));$(side+'_dataset_load').addEventListener('click',()=>{const id=Number($(side+'_dataset_select').value);const p=datasetProducts.find(x=>x.id===id);if(!p){$('dataset_status').textContent='Select a product for Product '+side.toUpperCase()+' first.';return;}$(side+'_name').value=p.name;$(side+'_ingredients').value=p.ingredients||'';for(const k of ['sugar','protein','fiber','sodium','calories','fat','carbs','price'])$(side+'_'+k).value=p[k]??'';$('dataset_status').textContent=`Loaded ${p.name}${p.brand?' — '+p.brand:''} into Product ${side.toUpperCase()}. You can now select another dataset product or compare it with a scanned product.`;});}
+loadDatasetProducts();
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function scan(s){const f=$(s+'_file').files[0];if(!f){$(s+'_status').textContent='Choose an image first.';return;}$(s+'_status').textContent='Scanning…';const fd=new FormData();fd.append('image',f);try{const r=await fetch('/api/ocr',{method:'POST',body:fd}),d=await r.json();if(!r.ok||d.error){$(s+'_status').textContent=d.error||'OCR failed';return;}const n=d.nutrition||{};for(const [k] of fields)if(n[k]!==undefined)$(s+'_'+k).value=n[k];if(n.ingredients)$(s+'_ingredients').value=n.ingredients;if(!$(s+'_name').value)$(s+'_name').value=f.name.replace(/\.[^.]+$/,'');$(s+'_status').textContent='OCR complete. Verify the values.\n\nDetected text:\n'+(d.raw_text||'(No text detected)');}catch(e){$(s+'_status').textContent='Could not contact app.py. Ensure it is running.';}}
+function product(s){const p={name:$(s+'_name').value||('Product '+s.toUpperCase()),ingredients:$(s+'_ingredients').value};for(const [k] of fields){const v=$(s+'_'+k).value;p[k]=v===''?null:Number(v);}return p;}
+$('compare').onclick=async()=>{const products=[product('a'),product('b')];if(products.every(p=>fields.every(([k])=>p[k]===null))){$('status').textContent='Scan labels or enter nutrition values manually.';return;}const diet=$('diet').value,profile={vegetarian:diet==='vegetarian',vegan:diet==='vegan',goals:[...document.querySelectorAll('.goal:checked')].map(e=>e.value),avoid:$('avoid').value,max_sugar:$('max_sugar').value,max_sodium:$('max_sodium').value,budget:$('budget').value};$('status').textContent='Comparing…';try{const r=await fetch('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({products,profile})}),d=await r.json();if(!r.ok){$('status').textContent=d.error||'Comparison failed';return;}$('status').textContent=d.note;$('summary').textContent=d.summary;$('results').innerHTML=d.results.map((p,i)=>`<div class="result ${p.warnings.length?'warn':p.score>=72?'good':'bad'}"><span class="small">Rank #${i+1}</span><h3>${esc(p.name)}</h3><div class="score">${p.score}/100</div><b>${esc(p.match)}</b><p>${p.reasons.map(esc).join('<br>')}</p>${p.warnings.length?'<b>Warnings</b><p>'+p.warnings.map(esc).join('<br>')+'</p>':'<p>No keyword/limit warning detected; this does not guarantee safety.</p>'}<div class="small">Rule score ${p.rule_score}; Random Forest ${p.ml_score??'n/a'}; Deep learning MLP ${p.deep_learning_score??'not installed'}</div><details><summary>Why this score? (XAI)</summary><ul>${(p.explanation?.contributions||[]).map(c=>`<li><b>${esc(c.feature)}:</b> ${c.value>0?'+':''}${c.value} — ${esc(c.reason)}</li>`).join('')}</ul><small>${esc(p.explanation?.interpretation||'')}</small></details></div>`).join('');$('comparison').innerHTML='<table><thead><tr><th>Measure</th>'+d.results.map(p=>'<th>'+esc(p.name)+'</th>').join('')+'</tr></thead><tbody>'+fields.map(([k,l])=>'<tr><th>'+l+'</th>'+d.results.map(p=>'<td>'+(p[k]??'Not detected')+'</td>').join('')+'</tr>').join('')+'<tr><th>Warnings</th>'+d.results.map(p=>'<td>'+esc(p.warnings.join('; ')||'None detected')+'</td>').join('')+'</tr></tbody></table>';$('metrics').textContent=JSON.stringify(d.metrics,null,2);$('explanation').textContent=(d.explanation?.mode||'RAG')+': '+(d.explanation?.text||'')+'\n\nRetrieved knowledge:\n'+(d.knowledge||[]).map(k=>'- '+k.topic+': '+k.guidance+' ['+k.source+']').join('\n');$('xai').textContent=d.results.map(p=>p.name+' — rule score '+p.explanation.rule_score+'\n'+p.explanation.contributions.map(c=>(c.value>0?'+':'')+c.value+' '+c.feature+': '+c.reason).join('\n')).join('\n\n');$('importance').textContent=(d.global_feature_importance||[]).map(x=>x.feature+': '+x.importance).join('\n')||'Not available';;}catch(e){$('status').textContent='Request failed. Ensure app.py is running.';}};
+
+$('sendchat').onclick=async()=>{const message=$('chatmessage').value.trim();if(!message){$('chatstatus').textContent='Enter a question first.';return;}const diet=$('diet').value,profile={vegetarian:diet==='vegetarian',vegan:diet==='vegan',goals:[...document.querySelectorAll('.goal:checked')].map(e=>e.value),avoid:$('avoid').value,max_sugar:$('max_sugar').value,max_sodium:$('max_sodium').value,budget:$('budget').value};$('chatstatus').textContent='Finding suitable catalogue products…';$('sendchat').disabled=true;try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,profile})}),d=await r.json();if(!r.ok){$('chatstatus').textContent=d.error||'Chat request failed';return;}$('chatlog').textContent='You: '+message+'\n\nSmartChoice ('+d.mode+'):\n'+d.text;$('chatstatus').textContent=d.note+'\nProfile used: '+JSON.stringify(d.profile_used);$('chatrecs').innerHTML=(d.recommendations||[]).map((p,i)=>`<div class="result ${p.warnings?.length?'warn':p.score>=72?'good':'bad'}"><span class="small">Catalogue match #${i+1}</span><h3>${esc(p.name||'Unnamed product')}</h3><div class="score">${p.score}/100</div><b>${esc(p.match)}</b><p>${['Sugar: '+(p.sugar??'unknown')+' g','Protein: '+(p.protein??'unknown')+' g','Fiber: '+(p.fiber??'unknown')+' g','Sodium: '+(p.sodium??'unknown')+' mg','Price: '+(p.price==null?'unknown':'₹'+p.price)].map(esc).join('<br>')}</p>${p.warnings?.length?'<b>Cautions</b><p>'+p.warnings.map(esc).join('<br>')+'</p>':''}<p>${(p.reasons||[]).map(esc).join(' ')}</p></div>`).join('');}catch(e){$('chatstatus').textContent='Could not contact app.py. Ensure the Flask app is running.';}finally{$('sendchat').disabled=false;}};
+$('chatmessage').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')$('sendchat').click();});
+$('clear').onclick=()=>{for(const s of ['a','b']){for(const k of ['name','file','ingredients',...fields.map(x=>x[0])])$(s+'_'+k).value='';$(s+'_status').textContent='Choose a clear image.';}$('summary').textContent='';$('results').innerHTML='';$('comparison').innerHTML='';$('xai').textContent='';$('explanation').textContent='';$('importance').textContent='';$('status').textContent='Scan both products, check values, then compare.';};
+
+// Multi-product workbench: image OCR + CSV catalogue + downloaded image dataset.
+const multiProducts = [];
+let allCsvProducts = [];
+const multiKeys = ['sugar','protein','fiber','sodium','calories','fat','carbs','price'];
+function asMultiProduct(p, source) {
+  return {
+    name: String(p.name || 'Unnamed product'), brand: p.brand || '', category: p.category || '',
+    ingredients: p.ingredients || '', source,
+    sugar: p.sugar === '' || p.sugar === undefined ? null : (p.sugar === null ? null : Number(p.sugar)),
+    protein: p.protein === '' || p.protein === undefined ? null : (p.protein === null ? null : Number(p.protein)),
+    fiber: p.fiber === '' || p.fiber === undefined ? null : (p.fiber === null ? null : Number(p.fiber)),
+    sodium: p.sodium === '' || p.sodium === undefined ? null : (p.sodium === null ? null : Number(p.sodium)),
+    calories: p.calories === '' || p.calories === undefined ? null : (p.calories === null ? null : Number(p.calories)),
+    fat: p.fat === '' || p.fat === undefined ? null : (p.fat === null ? null : Number(p.fat)),
+    carbs: p.carbs === '' || p.carbs === undefined ? null : (p.carbs === null ? null : Number(p.carbs)),
+    price: p.price === '' || p.price === undefined ? null : (p.price === null ? null : Number(p.price)),
+    image_url: p.image_url || null
+  };
+}
+function renderMultiProducts() {
+  $('multi_products_status').textContent = `${multiProducts.length} product(s) added. ${multiProducts.length < 2 ? 'Add at least one more product.' : 'Ready to compare.'} Maximum 100 products per comparison.`;
+  $('multi_products_list').innerHTML = multiProducts.map((p,i)=>`<div class="result"><div style="display:flex;justify-content:space-between;gap:8px;align-items:start"><div><span class="small">#${i+1} · ${esc(p.source||'product')}</span><h3>${esc(p.name)}</h3>${p.brand?'<div>'+esc(p.brand)+'</div>':''}${p.image_url?'<img src="'+esc(p.image_url)+'" alt="Product image" style="max-width:110px;max-height:110px;object-fit:contain;margin-top:6px">':''}</div><button class="secondary" data-remove-multi="${i}" style="padding:6px 10px">Remove</button></div><div class="grid" style="margin-top:8px">${multiKeys.map(k=>`<div><label>${esc(k)}</label><input type="number" step="any" data-multi-index="${i}" data-multi-key="${k}" value="${p[k]??''}"></div>`).join('')}<div style="grid-column:1/-1"><label>Ingredients</label><textarea data-multi-index="${i}" data-multi-key="ingredients" rows="2">${esc(p.ingredients||'')}</textarea></div></div></div>`).join('');
+  $('multi_products_list').querySelectorAll('[data-remove-multi]').forEach(b=>b.onclick=()=>{multiProducts.splice(Number(b.dataset.removeMulti),1);renderMultiProducts();});
+  $('multi_products_list').querySelectorAll('[data-multi-index]').forEach(el=>el.addEventListener('change',()=>{const p=multiProducts[Number(el.dataset.multiIndex)], k=el.dataset.multiKey; p[k]=k==='ingredients'?el.value:(el.value===''?null:Number(el.value));}));
+}
+function fillMultiCsv() {
+  const q=$('multi_csv_search').value.trim().toLowerCase();
+  const items=allCsvProducts.filter(p=>!q||`${p.name} ${p.brand} ${p.category}`.toLowerCase().includes(q));
+  $('multi_csv_select').innerHTML=items.map(p=>`<option value="${p.id}">${esc(p.name)}${p.brand?' — '+esc(p.brand):''}${p.category?' ('+esc(p.category)+')':''}</option>`).join('');
+  $('multi_csv_status').textContent=`Showing ${items.length} of ${allCsvProducts.length} CSV products.`;
+}
+async function loadMultiCsv() {
+  try {
+    const r=await fetch('/api/products?limit=2000'),d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Unable to load CSV');
+    allCsvProducts=d.products||[]; fillMultiCsv();
+  } catch(e) {$('multi_csv_status').textContent='Could not load CSV dataset: '+e.message;}
+}
+$('multi_csv_search').addEventListener('input',fillMultiCsv);
+$('add_csv_products').onclick=()=>{
+  const ids=[...$('multi_csv_select').selectedOptions].map(o=>Number(o.value));
+  const chosen=allCsvProducts.filter(p=>ids.includes(p.id));
+  let added=0;
+  for(const p of chosen){if(multiProducts.length>=100)break;multiProducts.push(asMultiProduct(p,'CSV dataset'));added++;}
+  $('multi_csv_status').textContent=`Added ${added} CSV product(s).`;renderMultiProducts();
+};
+$('scan_multi').onclick=async()=>{
+  const files=[...$('multi_images').files];
+  if(!files.length){$('multi_scan_status').textContent='Choose one or more images first.';return;}
+  if(files.length+multiProducts.length>100){$('multi_scan_status').textContent='The comparison list can contain up to 50 products. Remove some products first.';return;}
+  const fd=new FormData();files.forEach(f=>fd.append('images',f));
+  $('scan_multi').disabled=true;$('multi_scan_status').textContent=`Scanning ${files.length} image(s)…`;
+  try{
+    const r=await fetch('/api/ocr-batch',{method:'POST',body:fd}),d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Batch OCR failed');
+    let added=0,errors=[];
+    for(const p of (d.results||[])){
+      if(p.error){errors.push(p.filename+': '+p.error);continue;}
+      multiProducts.push(asMultiProduct(p,'Scanned image'));added++;
+    }
+    $('multi_scan_status').textContent=`OCR finished. Added ${added} product(s). Review and edit the extracted values below.`+(errors.length?'\nErrors:\n'+errors.join('\n'):'');
+    renderMultiProducts();
+  }catch(e){$('multi_scan_status').textContent='Scan failed: '+e.message;}
+  finally{$('scan_multi').disabled=false;}
+};
+$('compare_multi').onclick=async()=>{
+  if(multiProducts.length<2){$('multi_products_status').textContent='Add at least two products before comparing.';return;}
+  if(multiProducts.length>100){$('multi_products_status').textContent='Maximum 100 products per comparison.';return;}
+  const diet=$('diet').value,profile={vegetarian:diet==='vegetarian',vegan:diet==='vegan',goals:[...document.querySelectorAll('.goal:checked')].map(e=>e.value),avoid:$('avoid').value,max_sugar:$('max_sugar').value,max_sodium:$('max_sodium').value,budget:$('budget').value};
+  $('compare_multi').disabled=true;$('multi_products_status').textContent=`Comparing ${multiProducts.length} products…`;
+  try{
+    const r=await fetch('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({products:multiProducts,profile})}),d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Comparison failed');
+    $('multi_products_status').textContent=d.note+' Sorted by warning status and personalized score.';
+    $('summary').textContent=d.summary;
+    $('results').innerHTML=d.results.map((p,i)=>`<div class="result ${p.warnings.length?'warn':p.score>=72?'good':'bad'}"><span class="small">Rank #${i+1} · ${esc(p.source||'product')}</span><h3>${esc(p.name)}</h3><div class="score">${p.score}/100</div><b>${esc(p.match)}</b><p>${(p.reasons||[]).map(esc).join('<br>')}</p>${p.warnings.length?'<b>Warnings</b><p>'+p.warnings.map(esc).join('<br>')+'</p>':'<p>No keyword/limit warning detected; this does not guarantee safety.</p>'}<div class="small">Rule score ${p.rule_score}; Random Forest ${p.ml_score??'n/a'}; Deep learning MLP ${p.deep_learning_score??'not installed'}</div><details><summary>Why this score? (XAI)</summary><ul>${(p.explanation?.contributions||[]).map(c=>`<li><b>${esc(c.feature)}:</b> ${c.value>0?'+':''}${c.value} — ${esc(c.reason)}</li>`).join('')}</ul></details></div>`).join('');
+    $('comparison').innerHTML='<table><thead><tr><th>Measure</th>'+d.results.map(p=>'<th>'+esc(p.name)+'</th>').join('')+'</tr></thead><tbody>'+fields.map(([k,l])=>'<tr><th>'+l+'</th>'+d.results.map(p=>'<td>'+(p[k]??'Not detected')+'</td>').join('')+'</tr>').join('')+'<tr><th>Preference score</th>'+d.results.map(p=>'<td>'+p.score+'/100</td>').join('')+'</tr><tr><th>Warnings</th>'+d.results.map(p=>'<td>'+esc((p.warnings||[]).join('; ')||'None detected')+'</td>').join('')+'</tr></tbody></table>';
+    $('metrics').textContent=JSON.stringify(d.metrics,null,2);
+    $('explanation').textContent=(d.explanation?.mode||'RAG')+': '+(d.explanation?.text||'')+'\n\nRetrieved knowledge:\n'+(d.knowledge||[]).map(k=>'- '+k.topic+': '+k.guidance+' ['+k.source+']').join('\n');
+    $('xai').textContent=d.results.map(p=>p.name+' — rule score '+p.explanation.rule_score+'\n'+p.explanation.contributions.map(c=>(c.value>0?'+':'')+c.value+' '+c.feature+': '+c.reason).join('\n')).join('\n\n');
+    $('importance').textContent=(d.global_feature_importance||[]).map(x=>x.feature+': '+x.importance).join('\n')||'Not available';
+    document.getElementById('summary').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){$('multi_products_status').textContent='Comparison failed: '+e.message;}
+  finally{$('compare_multi').disabled=false;}
+};
+$('clear_multi').onclick=()=>{multiProducts.length=0;$('multi_images').value='';renderMultiProducts();};
+loadMultiCsv();renderMultiProducts();
+
+</script></body></html>

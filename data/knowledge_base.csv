@@ -1,0 +1,8 @@
+topic,guidance,source
+sugar,"Compare sugar only when both products use the same serving or per-100-g basis. Check ingredient names that may indicate added sugars.","General nutrition-label reading guidance"
+allergens,"Keyword screening cannot confirm allergen safety. Check the package allergen statement and cross-contamination warning.","General food-allergy safety guidance"
+vegetarian,"Ingredient names and additives may be ambiguous. Check the vegetarian/non-vegetarian mark and manufacturer information.","General packaged-food label guidance"
+sodium,"Compare sodium values only when units and serving basis match.","General nutrition-label reading guidance"
+fiber,"Compare fiber between products using the same serving basis and consider the rest of the diet.","General nutrition education"
+ocr,"OCR may misread decimal points, digits, units or columns. Manually verify extracted values against the physical package.","SmartChoice project quality-control note"
+medical,"This application is an informational decision-support tool, not a diagnosis or substitute for a qualified clinician or dietitian.","Safety disclaimer"
