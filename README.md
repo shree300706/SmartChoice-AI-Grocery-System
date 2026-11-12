@@ -1,6 +1,6 @@
 # 🛒 SmartChoice: Food Decision Support System
 
-> **An decision-support system that helps users make more personalized grocery choices by considering product nutrition, ingredients, dietary preferences, and individual goals.**
+> **A decision-support system that helps users make more personalized grocery choices by considering product nutrition, ingredients, dietary preferences, and individual goals.**
 
 ## 📌 Overview
 
