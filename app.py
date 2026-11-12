@@ -1,19 +1,32 @@
+import os
+import re
+import uuid
+import shutil
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 import pytesseract
 
-pytesseract.pytesseract.tesseract_cmd = (
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe\tesseract.exe"
-)
-import os, re, uuid
+# Configure Tesseract OCR
+# Uses TESSERACT_CMD if provided; otherwise looks for Tesseract in PATH.
+TESSERACT_CMD = os.getenv("TESSERACT_CMD") or shutil.which("tesseract")
+
+if TESSERACT_CMD:
+    pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
+
+
 from pathlib import Path
 import numpy as np
 import pandas as pd
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from PIL import Image, ImageOps, ImageEnhance, ImageFilter
-import pytesseract
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from rag import LocalRAG, explain
+
+
 
 BASE = Path(__file__).resolve().parent
 DATA = BASE / "data" / "packaged_foods_india.csv"
@@ -45,6 +58,11 @@ def parse_label(text):
     return found
 
 def run_ocr(path):
+    if not TESSERACT_CMD:
+        raise RuntimeError(
+            "Tesseract OCR was not found. Install Tesseract and add it to PATH "
+            "or set the TESSERACT_CMD environment variable."
+        )    
     im = Image.open(path).convert("RGB")
     im = ImageOps.grayscale(im)
     im = ImageEnhance.Contrast(im).enhance(1.7)
