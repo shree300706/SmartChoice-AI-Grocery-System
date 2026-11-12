@@ -76,8 +76,18 @@ def parse_label(text):
 
                 # Basic sanity check so obvious OCR errors
                 # are not treated as valid nutrition values.
-                if value >= 0:
-                    found[key] = value
+                limits = {
+                    "sugar": 100,
+                    "protein": 100,
+                    "fiber": 100,
+                    "fat": 100,
+                    "carbs": 100,
+                    "sodium": 10000,
+                    "calories": 1000,
+                }
+
+if value >= 0 and value <= limits.get(key, float("inf")):
+    found[key] = value
 
             except (ValueError, TypeError):
                 pass
