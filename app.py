@@ -86,8 +86,8 @@ def parse_label(text):
                     "calories": 1000,
                 }
 
-if value >= 0 and value <= limits.get(key, float("inf")):
-    found[key] = value
+                if value >= 0 and value <= limits.get(key, float("inf")):
+                    found[key] = value
 
             except (ValueError, TypeError):
                 pass
