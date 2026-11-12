@@ -46,17 +46,61 @@ PATTERNS = {
  "carbs": r"(?:total\s+)?carbohydrates?\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*(?:g|gm|grams?)?",
 }
 def parse_label(text):
+    """
+    Extract nutrition values and ingredients from OCR text.
+    Handles common variations produced by food-label OCR.
+    """
     found = {}
-    normalized = text.replace(",", ".")
-    for key, pattern in PATTERNS.items():
-        m = re.search(pattern, normalized, re.I)
-        if m:
-            try: found[key] = float(m.group(1))
-            except ValueError: pass
-    m = re.search(r"(?:ingredients?|contains)\s*[:\-]?\s*(.{8,500}?)(?:\n|allergen|nutrition|per\s+100|per\s+serving|$)", text, re.I|re.S)
-    if m: found["ingredients"] = re.sub(r"\s+", " ", m.group(1)).strip(" :-\n\t")
-    return found
 
+    # Normalize OCR text
+    normalized = text.replace(",", ".")
+    normalized = re.sub(r"[ \t]+", " ", normalized)
+
+    patterns = {
+        "sugar": r"(?:total\s+)?sugars?\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(?:g|gm|grams?)?\b",
+        "protein": r"proteins?\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(?:g|gm|grams?)?\b",
+        "fiber": r"(?:dietary\s+)?fib(?:re|er)\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(?:g|gm|grams?)?\b",
+        "sodium": r"sodium\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(?:mg|milligrams?)?\b",
+        "calories": r"(?:energy|calories|calorie)\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(?:kcal|cal)?\b",
+        "fat": r"(?:total\s+)?fat\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(?:g|gm|grams?)?\b",
+        "carbs": r"(?:total\s+)?carbohydrates?\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(?:g|gm|grams?)?\b",
+    }
+
+    # Extract nutrition values
+    for key, pattern in patterns.items():
+        match = re.search(pattern, normalized, re.IGNORECASE)
+
+        if match:
+            try:
+                value = float(match.group(1))
+
+                # Basic sanity check so obvious OCR errors
+                # are not treated as valid nutrition values.
+                if value >= 0:
+                    found[key] = value
+
+            except (ValueError, TypeError):
+                pass
+
+    # Extract ingredient text
+    ingredient_match = re.search(
+        r"(?:ingredients?|contains)\s*[:\-]?\s*(.{8,500}?)"
+        r"(?:\n|allergen|nutrition|per\s+100|per\s+serving|$)",
+        text,
+        re.IGNORECASE | re.DOTALL
+    )
+
+    if ingredient_match:
+        ingredients = re.sub(
+            r"\s+",
+            " ",
+            ingredient_match.group(1)
+        ).strip(" :-\n\t")
+
+        if ingredients:
+            found["ingredients"] = ingredients
+
+    return found
 def run_ocr(path):
     if not TESSERACT_CMD:
         raise RuntimeError(
@@ -360,6 +404,14 @@ def chat_answer(message, profile, candidates, retrieved):
     lines.append("Check the label yourself; this tool cannot guarantee allergy safety or provide medical advice.")
     return {"mode":"Local catalogue recommender + RAG fallback", "generated":False, "text":"\n".join(lines)}
 
+@app.route("/api/model-info", methods=["GET"])
+def model_info():
+    """Return the current status and evaluation metrics of the recommendation models."""
+    return jsonify({
+        "random_forest": METRICS,
+        "deep_learning": DL_METRICS
+    })
+
 @app.route("/")
 def home():
     return render_template("index.html",product_count=len(PRODUCTS),metrics=METRICS)
@@ -430,10 +482,9 @@ def ocr_batch():
 @app.route("/api/image-products", methods=["GET"])
 def image_products():
     """List products with downloaded images from either included image dataset."""
-    image_root = BASE / "Indian_Packaged_Food_Image_Dataset"
+    image_root = BASE / "SmartChoice_Indian_Product_Front_Back_Dataset"
     manifest_sources = [
-        (image_root / "metadata" / "image_manifest.csv", ""),
-        (image_root / "Front_Back_Matching_Dataset" / "metadata" / "image_manifest.csv", "Front_Back_Matching_Dataset/"),
+    (image_root / "metadata" / "image_manifest.csv", "")
     ]
     rows = []
     for manifest, prefix in manifest_sources:
@@ -484,7 +535,7 @@ def image_products():
 
 @app.route("/image-dataset/<path:filename>")
 def serve_image_dataset(filename):
-    return send_from_directory(BASE / "Indian_Packaged_Food_Image_Dataset", filename)
+    return send_from_directory(BASE / "SmartChoice_Indian_Product_Front_Back_Dataset", filename)
 
 def _json_num(value):
     try:
