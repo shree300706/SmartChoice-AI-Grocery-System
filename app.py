@@ -204,7 +204,9 @@ def load_dataset():
              "sugar":["Sugar_g","sugar_g"],"protein":["Proteins_g","Protein_g","protein_g"],
              "fiber":["Dietary_Fiber_g","Fiber_g"],"sodium":["Sodium_mg","sodium_mg"],
              "calories":["Calories_kcal","calories"],"fat":["Total_Fat_g","fat"],
-             "carbs":["Carbohydrates_g","carbs"],"price":["Price_INR","price"]}
+             "carbs":["Carbohydrates_g","carbs"],
+             "price":["Price_INR","price"],
+             "serving_size_g":["Serving_Size_g","serving_size_g"]}
     out=pd.DataFrame()
     for key, options in aliases.items():
         col=next((c for c in options if c in df.columns),None)
